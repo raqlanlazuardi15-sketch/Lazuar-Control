@@ -1,1 +1,1543 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pancid Project - iOS Ultra Control Center</title>
 
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #030712;         
+            --glass-card: rgba(255, 255, 255, 0.05);
+            --glass-card-hover: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-border-active: rgba(255, 255, 255, 0.4);
+            
+            --text-main: #ffffff;       
+            --text-muted: #94a3b8;      
+            
+            --ios-blue: #0a84ff;     
+            --ios-purple: #bf5af2;
+            --ios-pink: #ff375f;
+            --ios-teal: #64d2ff;
+            --ios-green: #30d158;         
+            --ios-red: #ff453a;          
+            
+            --shadow-ios: 0 30px 60px rgba(0, 0, 0, 0.7);
+            --transition-ios: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; 
+            -webkit-font-smoothing: antialiased; 
+            user-select: none;
+        }
+
+        body { 
+            background: var(--bg-base); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            position: relative; 
+        }
+
+        /* Ambient Animated Mesh Background */
+        .ambient-bg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            overflow: hidden;
+            z-index: -1;
+            filter: blur(100px);
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            animation: float 20s ease-in-out infinite alternate;
+        }
+
+        .blob-1 {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.4), transparent 70%);
+            top: -200px; left: -150px;
+        }
+
+        .blob-2 {
+            width: 650px; height: 650px;
+            background: radial-gradient(circle, rgba(191, 90, 242, 0.35), transparent 70%);
+            bottom: -200px; right: -150px;
+            animation-duration: 25s;
+        }
+
+        .blob-3 {
+            width: 450px; height: 450px;
+            background: radial-gradient(circle, rgba(100, 210, 255, 0.25), transparent 70%);
+            top: 30%; left: 35%;
+            animation-duration: 18s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            50% { transform: translate(80px, 50px) scale(1.15) rotate(180deg); }
+            100% { transform: translate(-50px, 90px) scale(0.9) rotate(360deg); }
+        }
+
+        /* App Layout */
+        .app-container { 
+            display: flex; 
+            width: 100vw; 
+            height: 100vh; 
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 280px; 
+            background: var(--glass-card); 
+            backdrop-filter: blur(40px); 
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border); 
+            border-radius: 32px;
+            display: flex; 
+            flex-direction: column; 
+            padding: 28px 20px; 
+            z-index: 10;
+            box-shadow: var(--shadow-ios);
+        }
+
+        .brand-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 16px; 
+            padding-bottom: 24px; 
+            margin-bottom: 20px; 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+        }
+
+        .brand-icon { 
+            width: 48px; height: 48px; 
+            background: linear-gradient(135deg, #64d2ff, #0a84ff 50%, #bf5af2); 
+            border-radius: 16px; 
+            display: flex; justify-content: center; align-items: center; 
+            color: #fff; font-weight: 800; font-size: 20px;
+            box-shadow: 0 10px 25px rgba(10, 132, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .brand-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .nav-item {
+            display: flex; align-items: center; gap: 16px; 
+            padding: 14px 18px; border-radius: 20px; 
+            cursor: pointer; color: var(--text-muted);
+            font-weight: 600; font-size: 15px; 
+            transition: var(--transition-ios); 
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover { background: var(--glass-card-hover); color: var(--text-main); }
+        .nav-item.active { 
+            background: rgba(255, 255, 255, 0.15); 
+            color: #fff; 
+            border: 1px solid var(--glass-border-active);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
+            backdrop-filter: blur(20px);
+        }
+
+        .nav-icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; gap: 20px; }
+
+        .top-header { 
+            height: 80px; 
+            background: var(--glass-card); 
+            backdrop-filter: blur(40px); 
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border); 
+            border-radius: 28px;
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 32px; z-index: 5; 
+            box-shadow: var(--shadow-ios);
+        }
+
+        .view-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+        .connection-panel { display: flex; align-items: center; gap: 16px; }
+        
+        .status-badge { 
+            display: flex; align-items: center; gap: 10px; 
+            background: rgba(0, 0, 0, 0.5); 
+            padding: 8px 16px; border-radius: 24px; 
+            font-size: 12px; font-weight: 600; 
+            border: 1px solid var(--glass-border); 
+            font-family: 'JetBrains Mono', monospace; color: #fff;
+        }
+
+        .status-dot { 
+            width: 8px; height: 8px; border-radius: 50%; 
+            background-color: var(--ios-red); 
+            box-shadow: 0 0 12px var(--ios-red); 
+            transition: var(--transition-ios); 
+        }
+        
+        .btn { 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
+            padding: 12px 24px; border-radius: 20px; 
+            font-size: 13px; font-weight: 600; 
+            cursor: pointer; border: 1px solid var(--glass-border); 
+            transition: var(--transition-ios); color: #fff; 
+        }
+
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--ios-blue), #5856d6); 
+            box-shadow: 0 6px 20px rgba(10, 132, 255, 0.4); 
+        }
+        .btn-primary:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 25px rgba(10, 132, 255, 0.6); }
+
+        .view-container { 
+            flex: 1; overflow-y: auto; display: none; 
+            animation: iosSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
+        .view-container.active { display: block; }
+
+        @keyframes iosSlideIn { 
+            from { opacity: 0; transform: scale(0.97) translateY(16px); } 
+            to { opacity: 1; transform: scale(1) translateY(0); } 
+        }
+
+        .card { 
+            background: var(--glass-card); 
+            backdrop-filter: blur(40px); 
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border); 
+            border-radius: 32px; padding: 28px; 
+            box-shadow: var(--shadow-ios); 
+            display: flex; flex-direction: column; gap: 16px; 
+            position: relative; transition: var(--transition-ios); 
+        }
+
+        .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; }
+        .chart-value { font-size: 52px; font-weight: 700; display: flex; align-items: baseline; gap: 8px; letter-spacing: -1.5px; color: #fff; }
+        .chart-value .unit { font-size: 22px; color: var(--ios-teal); font-weight: 600; }
+        .chart-container { position: relative; height: 260px; width: 100%; }
+
+        /* ULTRA FLASHLIGHT STYLING */
+        .led-view-layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px; height: 100%; align-items: center; }
+        
+        .led-illustration-container { 
+            display: flex; justify-content: center; align-items: center; 
+            height: 520px; background: var(--glass-card); 
+            backdrop-filter: blur(40px); border-radius: 32px; 
+            border: 1px solid var(--glass-border); 
+            box-shadow: var(--shadow-ios); position: relative; overflow: hidden;
+            perspective: 1000px;
+        }
+
+        .flashlight-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            margin-top: 100px;
+        }
+
+        .flashlight-svg { 
+            width: 120px; height: auto; z-index: 5; 
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
+        }
+        
+        /* Dynamic Light Beams */
+        .beam-container {
+            position: absolute;
+            bottom: 75%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .flashlight-beam-primary {
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 180px solid transparent;
+            border-right: 180px solid transparent;
+            border-top: 360px solid rgba(255, 255, 255, 0);
+            filter: blur(12px);
+            transition: border-top-color 0.4s ease, opacity 0.2s ease;
+            mix-blend-mode: screen;
+        }
+
+        .flashlight-beam-glow {
+            position: absolute;
+            bottom: -20px; left: 50%;
+            transform: translateX(-50%);
+            width: 320px; height: 320px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            filter: blur(40px);
+            transition: all 0.4s ease;
+            mix-blend-mode: screen;
+        }
+
+        /* Dust Particles */
+        .dust-particle {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            animation: floatParticle 3s infinite linear;
+        }
+
+        @keyframes floatParticle {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-180px) scale(1.2); opacity: 0; }
+        }
+
+        /* SVG Parts Dynamic Transitions */
+        .flashlight-svg * { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* ACTIVE LIGHT STATE */
+        .led-illustration-container.is-on .flashlight-beam-primary {
+            border-top-color: rgba(255, 255, 255, 0.95);
+        }
+
+        .led-illustration-container.is-on .flashlight-beam-glow {
+            background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(200, 230, 255, 0.6) 40%, transparent 75%);
+        }
+
+        .led-illustration-container.is-on .fl-lens {
+            fill: #ffffff !important;
+            filter: drop-shadow(0 0 25px rgba(255, 255, 255, 1));
+        }
+
+        .led-illustration-container.is-on .fl-head {
+            fill: rgba(255, 255, 255, 0.9) !important;
+            stroke: #ffffff !important;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+        }
+
+        .led-illustration-container.is-on .fl-body {
+            fill: rgba(255, 255, 255, 0.85) !important;
+            stroke: #ffffff !important;
+            filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.6));
+        }
+
+        .led-illustration-container.is-on .fl-core {
+            fill: #ffffff !important;
+            filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1));
+        }
+
+        .led-illustration-container.is-on .fl-grip {
+            stroke: rgba(150, 180, 220, 0.6) !important;
+        }
+
+        .led-illustration-container.is-on .fl-switch {
+            fill: var(--ios-blue) !important;
+            filter: drop-shadow(0 0 10px var(--ios-blue));
+        }
+
+        /* Control Panel */
+        .led-controls-container { 
+            background: var(--glass-card); backdrop-filter: blur(40px);
+            padding: 40px; border-radius: 32px; 
+            border: 1px solid var(--glass-border); 
+            display: flex; flex-direction: column; gap: 36px; 
+            box-shadow: var(--shadow-ios);
+        }
+
+        .big-switch { position: relative; display: inline-block; width: 68px; height: 38px; } 
+        .big-switch input { opacity: 0; width: 0; height: 0; }
+        .big-slider { 
+            position: absolute; cursor: pointer; 
+            top: 0; left: 0; right: 0; bottom: 0; 
+            background-color: rgba(255, 255, 255, 0.15); 
+            transition: .4s cubic-bezier(0.16, 1, 0.3, 1); 
+            border-radius: 38px; border: 1px solid var(--glass-border); 
+        }
+
+        .big-slider:before { 
+            position: absolute; content: ""; 
+            height: 30px; width: 30px; left: 3px; bottom: 3px; 
+            background-color: #fff; transition: .4s cubic-bezier(0.16, 1, 0.3, 1); 
+            border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        input:checked + .big-slider { background-color: var(--ios-green); border-color: var(--ios-green); } 
+        input:checked + .big-slider:before { transform: translateX(30px); }
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; height: 30px; width: 30px; 
+            border-radius: 50%; background: #fff; cursor: pointer; 
+            margin-top: -11px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track { 
+            width: 100%; height: 8px; cursor: pointer; 
+            background: rgba(255, 255, 255, 0.2); border-radius: 4px; 
+        }
+
+        /* MANUAL OVERRIDE / D-PAD STYLING */
+        .dpad-view-layout { grid-template-columns: 1.2fr 0.8fr; }
+        .dpad-pad-card { align-items: center; justify-content: center; min-height: 480px; }
+        .dpad-status-card { justify-content: flex-start; }
+
+        .dpad-wrapper { display: flex; justify-content: center; align-items: center; }
+        .dpad-container { display: grid; grid-template-columns: 84px 100px 84px; grid-template-rows: 84px 100px 84px; gap: 14px; }
+
+        .dpad-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--glass-border);
+            border-radius: 22px;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            color: #fff;
+            transition: var(--transition-ios);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+        .dpad-btn svg { width: 46%; height: 46%; }
+        .dpad-btn:hover { background: var(--glass-card-hover); border-color: var(--glass-border-active); transform: translateY(-2px); }
+        .dpad-btn:active, .dpad-btn.is-pressed {
+            background: linear-gradient(135deg, var(--ios-blue), #5856d6);
+            border-color: var(--ios-blue);
+            transform: scale(0.94);
+            box-shadow: 0 0 30px rgba(10, 132, 255, 0.6);
+        }
+
+        .dpad-up { grid-column: 2; grid-row: 1; }
+        .dpad-left { grid-column: 1; grid-row: 2; }
+        .dpad-right { grid-column: 3; grid-row: 2; }
+        .dpad-down { grid-column: 2; grid-row: 3; }
+        .dpad-center {
+            grid-column: 2; grid-row: 2;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            cursor: default;
+            box-shadow: none;
+            border: 1px dashed var(--glass-border);
+        }
+
+        /* Screen Shake Effect */
+        @keyframes ultraShake {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-2px, 2px); }
+            50% { transform: translate(2px, -2px); }
+            75% { transform: translate(-1px, -1px); }
+            100% { transform: translate(0, 0); }
+        }
+        .shake { animation: ultraShake 0.15s ease-in-out infinite; }
+
+        /* ==========================================================================
+           AI VISION / TEACHABLE MACHINE (additive)
+           ========================================================================== */
+        .tm-hidden { display: none !important; }
+        .tm-stack { display: flex; flex-direction: column; gap: 20px; padding-bottom: 20px; }
+        .tm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+        .tm-grid > .card { min-width: 0; }
+        @media (max-width: 1280px) { .tm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tm-card-info { grid-column: 1 / -1; } }
+        @media (max-width: 760px) { .tm-grid { grid-template-columns: minmax(0, 1fr); } }
+
+        .tm-pill {
+            align-self: flex-start; background: rgba(255, 255, 255, 0.1); color: var(--ios-teal);
+            padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: 700;
+            border: 1px solid var(--glass-border); letter-spacing: 1px;
+        }
+        .tm-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        .tm-subtitle { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+        .tm-muted { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+        .tm-input-row { display: flex; gap: 12px; }
+        @media (max-width: 760px) { .tm-input-row { flex-direction: column; } }
+        .tm-input {
+            flex: 1; min-width: 0; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 12px 18px; color: #fff; font-size: 14px;
+            font-family: 'JetBrains Mono', monospace; outline: none; transition: var(--transition-ios);
+            user-select: text; -webkit-user-select: text;
+        }
+        .tm-input::placeholder { color: rgba(148, 163, 184, 0.7); }
+        .tm-input:focus { border-color: var(--ios-blue); box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+        .tm-btn-ghost { background: rgba(255, 255, 255, 0.08); }
+        .tm-btn-ghost:hover { background: var(--glass-card-hover); border-color: var(--glass-border-active); }
+        .tm-btn-danger { background: linear-gradient(135deg, var(--ios-red), #ff6482); box-shadow: 0 6px 20px rgba(255, 69, 58, 0.35); }
+        .tm-btn-danger:hover { transform: translateY(-2px); }
+
+        .tm-error {
+            background: rgba(255, 69, 58, 0.12); border: 1px solid rgba(255, 69, 58, 0.5);
+            color: #ff8a80; border-radius: 20px; padding: 14px 18px; font-size: 14px; line-height: 1.5;
+        }
+        .tm-loading { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .tm-loading-head { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--ios-teal); }
+        .tm-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(100, 210, 255, 0.25); border-top-color: var(--ios-teal); animation: tmSpin 0.8s linear infinite; }
+        @keyframes tmSpin { to { transform: rotate(360deg); } }
+        .tm-skel-row { display: flex; gap: 14px; }
+        .tm-skel {
+            border-radius: 14px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%; animation: tmShimmer 1.3s linear infinite;
+        }
+        @keyframes tmShimmer { to { background-position: -200% 0; } }
+
+        .tm-list { display: flex; flex-direction: column; gap: 14px; margin: 0; }
+        .tm-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; }
+        .tm-row dt { color: var(--text-muted); }
+        .tm-row dd { font-weight: 600; margin: 0; text-align: right; }
+        .tm-label { color: var(--text-muted); font-size: 14px; margin-bottom: 8px; }
+        .tm-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+        .tm-chip { padding: 5px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--glass-border); color: var(--ios-teal); font-size: 12px; font-weight: 600; }
+        .tm-url {
+            display: block; width: 100%; text-align: left; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border);
+            border-radius: 14px; padding: 9px 12px; color: #cbd5e1; font-size: 12px; font-family: 'JetBrains Mono', monospace; cursor: pointer;
+        }
+        .tm-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tm-wrap { white-space: normal; word-break: break-all; }
+        .tm-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tm-actions .btn { padding: 10px 18px; }
+
+        .tm-stage {
+            position: relative; width: 100%; max-width: 480px; margin: 0 auto; aspect-ratio: 1 / 1;
+            background: #000; border-radius: 24px; overflow: hidden; border: 1px solid var(--glass-border);
+        }
+        .tm-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 15px; font-weight: 600; }
+        .tm-mic { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+        .tm-mic-label { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--ios-red); font-family: 'JetBrains Mono', monospace; }
+        .tm-mic-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ios-red); box-shadow: 0 0 12px var(--ios-red); animation: tmPulse 1s ease-in-out infinite; }
+        @keyframes tmPulse { 50% { opacity: 0.3; } }
+        .tm-eq { display: flex; align-items: flex-end; gap: 6px; height: 56px; }
+        .tm-eq span { display: block; width: 8px; border-radius: 4px; background: linear-gradient(180deg, var(--ios-pink), var(--ios-red)); animation: tmEq 0.9s ease-in-out infinite alternate; }
+        .tm-eq span:nth-child(2) { animation-delay: -0.2s; }
+        .tm-eq span:nth-child(3) { animation-delay: -0.5s; }
+        .tm-eq span:nth-child(4) { animation-delay: -0.3s; }
+        .tm-eq span:nth-child(5) { animation-delay: -0.7s; }
+        @keyframes tmEq { from { height: 8px; } to { height: 56px; } }
+        .tm-run-msg { color: #ff8a80; font-size: 13px; line-height: 1.5; }
+
+        .tm-top-label { font-size: 40px; font-weight: 700; letter-spacing: -1px; line-height: 1.1; word-break: break-word; }
+        .tm-top-line { font-size: 14px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 6px; }
+        .tm-bars { display: flex; flex-direction: column; gap: 14px; }
+        .tm-bar-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 6px; }
+        .tm-bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+        .tm-bar-pct { flex-shrink: 0; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .tm-bar-pct.is-top { color: var(--ios-green); font-weight: 600; }
+        .tm-bar-track { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+        .tm-bar-fill { height: 100%; width: 0; border-radius: 5px; background: var(--ios-blue); transition: width 0.18s ease-out; }
+        .tm-bar-fill.is-top { background: var(--ios-green); }
+
+        .tm-toasts { position: fixed; right: 24px; bottom: 24px; z-index: 100; display: flex; flex-direction: column; gap: 10px; width: min(340px, calc(100vw - 48px)); pointer-events: none; }
+        .tm-toast {
+            display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 20px;
+            background: rgba(15, 20, 35, 0.85); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border); box-shadow: var(--shadow-ios); font-size: 13px; font-weight: 600;
+            animation: iosSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .tm-toast-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        @media (prefers-reduced-motion: reduce) {
+            .tm-spinner, .tm-skel, .tm-mic-dot, .tm-eq span, .tm-toast { animation: none; }
+            .tm-bar-fill { transition: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="app-container" id="appFrame">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="brand-container">
+                <div class="brand-icon">PP</div>
+                <div class="brand-text">Pancid Project</div>
+            </div>
+            <nav class="nav-menu">
+                <div class="nav-item active" onclick="switchView('view-mission', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <span>Control Center</span>
+                </div>
+                <div class="nav-item" onclick="switchView('view-dpad', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9L2 12L5 15"/><path d="M9 5L12 2L15 5"/><path d="M15 19L12 22L9 19"/><path d="M19 9L22 12L19 15"/><path d="M2 12L22 12"/><path d="M12 2L12 22"/></svg>
+                    <span>Manual Override</span>
+                </div>
+                <div class="nav-item" onclick="switchView('view-led', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                    <span>Photon Torch</span>
+                </div>
+                <div class="nav-item" onclick="switchView('view-ai', this)">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span>AI Vision</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="view-title" id="top-title">Control Center</div>
+                <div class="connection-panel">
+                    <div class="status-badge">
+                        <div class="status-dot" id="statusDot"></div>
+                        <span id="statusText">NO SIGNAL</span>
+                    </div>
+                    <button class="btn btn-primary" id="connectBtn">INITIALIZE LINK</button>
+                </div>
+            </header>
+
+            <!-- VIEW 1: DASHBOARD -->
+            <div id="view-mission" class="view-container active">
+                <div class="grid-2col">
+                    <div class="card">
+                        <div class="chart-value">28.4 <span class="unit">°C</span></div>
+                        <div class="chart-container"><canvas id="tempChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="chart-value">62 <span class="unit">%</span></div>
+                        <div class="chart-container"><canvas id="humChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 2: MANUAL OVERRIDE (D-PAD) -->
+            <div id="view-dpad" class="view-container">
+                <div class="led-view-layout dpad-view-layout">
+                    <div class="card dpad-pad-card">
+                        <div class="dpad-wrapper">
+                            <div class="dpad-container">
+                                <button type="button" class="dpad-btn dpad-up" aria-label="Maju">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                                </button>
+                                <button type="button" class="dpad-btn dpad-left" aria-label="Kiri">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                                </button>
+                                <div class="dpad-btn dpad-center" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+                                </div>
+                                <button type="button" class="dpad-btn dpad-right" aria-label="Kanan">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                </button>
+                                <button type="button" class="dpad-btn dpad-down" aria-label="Mundur">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card dpad-status-card">
+                        <span style="background: rgba(255, 255, 255, 0.1); color: var(--ios-teal); padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid var(--glass-border); letter-spacing: 1px; align-self: flex-start;">MANUAL CONTROL</span>
+                        <div style="font-size: 24px; font-weight: 700; margin-top: 20px;">Robot Override</div>
+                        <p style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-top: 8px;">
+                            Hubungkan micro:bit lewat tombol di pojok kanan atas dulu. Setelah LINK ACTIVE, tahan salah satu tombol arah untuk menggerakkan robot secara real-time lewat Bluetooth.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 3: ULTRA LIGHT / FLASHLIGHT -->
+            <div id="view-led" class="view-container">
+                <div class="led-view-layout">
+                    <div class="led-illustration-container" id="ledIllustration">
+                        <div class="beam-container">
+                            <div class="flashlight-beam-primary" id="beamPrimary"></div>
+                            <div class="flashlight-beam-glow" id="beamGlow"></div>
+                            <div id="particlesHolder"></div>
+                        </div>
+
+                        <div class="flashlight-wrapper" id="flWrapper">
+                            <!-- HIGH DETAILED VECTOR FLASHLIGHT -->
+                            <svg class="flashlight-svg" viewBox="0 0 100 200">
+                                <defs>
+                                    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="rgba(255,255,255,0.1)"/>
+                                        <stop offset="50%" stop-color="rgba(255,255,255,0.3)"/>
+                                        <stop offset="100%" stop-color="rgba(255,255,255,0.05)"/>
+                                    </linearGradient>
+                                </defs>
+                                
+                                <!-- Core Neon Rod -->
+                                <rect class="fl-core" x="46" y="55" width="8" height="100" rx="4" fill="rgba(255,255,255,0.1)"/>
+
+                                <!-- Head Cone -->
+                                <path class="fl-head" d="M20 12 L80 12 L68 55 L32 55 Z" fill="url(#bodyGrad)" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+                                
+                                <!-- Top Lens Surface -->
+                                <ellipse class="fl-lens" cx="50" cy="12" rx="30" ry="7" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>
+
+                                <!-- Main Glass Body -->
+                                <rect class="fl-body" x="34" y="55" width="32" height="120" rx="12" fill="url(#bodyGrad)" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+
+                                <!-- Grip Metal Rings -->
+                                <line class="fl-grip" x1="38" y1="75" x2="62" y2="75" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                                <line class="fl-grip" x1="38" y1="90" x2="62" y2="90" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                                <line class="fl-grip" x1="38" y1="105" x2="62" y2="105" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+                                <line class="fl-grip" x1="38" y1="120" x2="62" y2="120" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+
+                                <!-- Tactile Switch -->
+                                <rect class="fl-switch" x="45" y="142" width="10" height="18" rx="3" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="led-controls-container">
+                        <div>
+                            <span style="background: rgba(255, 255, 255, 0.1); color: var(--ios-teal); padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1px solid var(--glass-border); letter-spacing: 1px;">PHOTON ENGINE</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                                <div style="font-size: 24px; font-weight: 700;">Torch Power</div>
+                                <label class="big-switch">
+                                    <input type="checkbox" id="ledToggleSwitch">
+                                    <span class="big-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: 24px; border: 1px solid var(--glass-border);">
+                            <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; margin-bottom: 20px;">
+                                <span>Lumen Output</span>
+                                <span id="brightnessValueText" style="color: var(--ios-teal); font-family: 'JetBrains Mono', monospace; font-size: 18px;">0 LM</span>
+                            </div>
+                            <input type="range" id="ledBrightnessSlider" min="0" max="100" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 4: AI VISION (TEACHABLE MACHINE) -->
+            <div id="view-ai" class="view-container">
+                <div class="tm-stack">
+
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <span class="tm-pill">TEACHABLE MACHINE</span>
+                            <div class="status-badge">
+                                <div class="status-dot" id="tmStateDot" style="background-color: #94a3b8; box-shadow: 0 0 12px #94a3b8;"></div>
+                                <span id="tmStateText">NO MODEL</span>
+                            </div>
+                        </div>
+                        <div class="tm-title">Model URL</div>
+                        <p class="tm-muted">
+                            Tempel link model dari Teachable Machine (Export Model &rarr; Upload my model), lalu tekan Load Model. Mendukung model Image, Pose, dan Audio.
+                        </p>
+                        <div class="tm-input-row">
+                            <input type="text" id="tmUrlInput" class="tm-input" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+                                   aria-label="Teachable Machine model URL" placeholder="Paste your Teachable Machine model URL...">
+                            <button type="button" class="btn btn-primary" id="tmLoadBtn">Load Model</button>
+                        </div>
+                        <div class="tm-error tm-hidden" id="tmError" role="alert"></div>
+                        <div class="tm-loading tm-hidden" id="tmLoading" role="status">
+                            <div class="tm-loading-head"><span class="tm-spinner"></span><span id="tmLoadingText">Loading model...</span></div>
+                            <div class="tm-skel-row">
+                                <div class="tm-skel" style="width: 96px; height: 72px;"></div>
+                                <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                                    <div class="tm-skel" style="height: 16px;"></div>
+                                    <div class="tm-skel" style="height: 16px; width: 75%;"></div>
+                                    <div class="tm-skel" style="height: 16px; width: 55%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tm-grid tm-hidden" id="tmWorkspace">
+
+                        <div class="card tm-card-info">
+                            <div class="tm-subtitle">Model Info</div>
+                            <dl class="tm-list">
+                                <div class="tm-row"><dt>Model status</dt><dd style="color: var(--ios-green);">Loaded</dd></div>
+                                <div class="tm-row"><dt>Model type</dt><dd id="tmInfoType" style="color: var(--ios-teal);">-</dd></div>
+                                <div class="tm-row"><dt>Number of classes</dt><dd id="tmInfoCount">0</dd></div>
+                                <div>
+                                    <dt class="tm-label">Class names</dt>
+                                    <dd class="tm-chips" id="tmInfoClasses"></dd>
+                                </div>
+                                <div>
+                                    <dt class="tm-label">Model URL</dt>
+                                    <dd style="margin: 0;"><button type="button" class="tm-url tm-truncate" id="tmUrlToggle" aria-expanded="false" title="Click to expand"></button></dd>
+                                </div>
+                            </dl>
+                            <div class="tm-actions">
+                                <button type="button" class="btn tm-btn-ghost" id="tmReloadBtn">Reload Model</button>
+                                <button type="button" class="btn tm-btn-danger" id="tmClearBtn">Clear Model</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="tm-subtitle" id="tmStageTitle">Camera</div>
+                            <div class="tm-stage" id="tmStage">
+                                <div class="tm-placeholder" id="tmStagePlaceholder">Camera is off</div>
+                                <div class="tm-mic tm-hidden" id="tmMicIndicator">
+                                    <div class="tm-eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+                                    <div class="tm-mic-label"><span class="tm-mic-dot"></span>MIC ACTIVE</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary" id="tmStartBtn">Start Camera</button>
+                            <p class="tm-run-msg tm-hidden" id="tmRunMsg"></p>
+                        </div>
+
+                        <div class="card">
+                            <div class="tm-subtitle">Real-time Prediction</div>
+                            <div>
+                                <div class="tm-muted" style="font-size: 12px; letter-spacing: 1px;">PREDICTION</div>
+                                <div class="tm-top-label" id="tmTopLabel">-</div>
+                                <div class="tm-top-line" id="tmTopLine">Waiting for input...</div>
+                            </div>
+                            <div class="tm-bars" id="tmBars"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Web Audio Synthesizer for Tactile Click Sound
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playClickSound(freq = 800) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.04);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.04);
+        }
+
+        // Navigation
+        function switchView(viewId, navElement) {
+            playClickSound(600);
+            document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            navElement.classList.add('active');
+            document.getElementById('top-title').innerText = navElement.querySelector('span').innerText;
+        }
+
+        // Flashlight Controller
+        const ledToggle = document.getElementById('ledToggleSwitch');
+        const ledSlider = document.getElementById('ledBrightnessSlider');
+        const ledIllustration = document.getElementById('ledIllustration');
+        const beamPrimary = document.getElementById('beamPrimary');
+        const beamGlow = document.getElementById('beamGlow');
+        const brightnessText = document.getElementById('brightnessValueText');
+        const particlesHolder = document.getElementById('particlesHolder');
+        const appFrame = document.getElementById('appFrame');
+
+        // Create Ambient Light Particles
+        for(let i=0; i<12; i++) {
+            let p = document.createElement('div');
+            p.className = 'dust-particle';
+            p.style.width = Math.random() * 4 + 2 + 'px';
+            p.style.height = p.style.width;
+            p.style.left = (Math.random() * 240 - 120) + 'px';
+            p.style.bottom = (Math.random() * 200 + 50) + 'px';
+            p.style.animationDelay = Math.random() * 3 + 's';
+            particlesHolder.appendChild(p);
+        }
+
+        function updateLightIntensity(val) {
+            const ratio = val / 100;
+            brightnessText.innerText = Math.round(val * 15) + " LM";
+            
+            if(val > 0) {
+                ledIllustration.classList.add('is-on');
+                beamPrimary.style.opacity = ratio;
+                beamGlow.style.opacity = ratio;
+                beamGlow.style.transform = `translateX(-50%) scale(${0.8 + ratio * 0.5})`;
+                
+                if(ratio > 0.8) {
+                    appFrame.classList.add('shake');
+                    setTimeout(() => appFrame.classList.remove('shake'), 150);
+                }
+            } else {
+                ledIllustration.classList.remove('is-on');
+                beamPrimary.style.opacity = 0;
+                beamGlow.style.opacity = 0;
+            }
+        }
+
+        ledToggle.addEventListener('change', e => {
+            playClickSound(e.target.checked ? 900 : 400);
+            if(e.target.checked) {
+                if(ledSlider.value == 0) ledSlider.value = 100;
+                updateLightIntensity(ledSlider.value);
+            } else {
+                ledSlider.value = 0;
+                updateLightIntensity(0);
+            }
+        });
+
+        ledSlider.addEventListener('input', e => {
+            const val = e.target.value;
+            if (val > 0) {
+                if(!ledToggle.checked) {
+                    ledToggle.checked = true;
+                    playClickSound(800);
+                }
+            } else {
+                if(ledToggle.checked) {
+                    ledToggle.checked = false;
+                    playClickSound(300);
+                }
+            }
+            updateLightIntensity(val);
+        });
+
+        // Interactive 3D Tilt Effect
+        const flWrapper = document.getElementById('flWrapper');
+        ledIllustration.addEventListener('mousemove', e => {
+            const rect = ledIllustration.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width/2;
+            const y = e.clientY - rect.top - rect.height/2;
+            flWrapper.style.transform = `rotateY(${x * 0.08}deg) rotateX(${-y * 0.08}deg)`;
+        });
+
+        ledIllustration.addEventListener('mouseleave', () => {
+            flWrapper.style.transform = `rotateY(0deg) rotateX(0deg)`;
+        });
+
+        // Render Background Charts
+        const commonOptions = {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            elements: { point: { radius: 0 }, line: { tension: 0.4, borderWidth: 3 } },
+            scales: { x: { display: false }, y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, border: { display: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } } }
+        };
+
+        new Chart(document.getElementById('tempChart').getContext('2d'), { 
+            type: 'line', 
+            data: { labels: [1,2,3,4,5,6,7,8], datasets: [{ data: [22,24,23,25,27,26,28,28.4], borderColor: '#ff375f', backgroundColor: 'rgba(255, 55, 95, 0.15)', fill: true }] }, 
+            options: commonOptions 
+        });
+
+        new Chart(document.getElementById('humChart').getContext('2d'), { 
+            type: 'line', 
+            data: { labels: [1,2,3,4,5,6,7,8], datasets: [{ data: [50,55,52,58,60,61,63,62], borderColor: '#64d2ff', backgroundColor: 'rgba(100, 210, 255, 0.15)', fill: true }] }, 
+            options: commonOptions 
+        });
+
+        /* ==========================================================================
+           WEB BLUETOOTH & D-PAD OVERRIDE LOGIC (ported from egsrrg.html)
+           ========================================================================== */
+        let bluetoothDevice;
+        let txCharacteristic;
+        let currentCommand = "stop";
+        let commandLoop;
+
+        // UUID standar buat komunikasi UART di Micro:bit
+        const UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+        const UART_RX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // RX (buat kirim ke robot)
+
+        const connectBtn = document.getElementById('connectBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        // Klik tombol di header buat konek/diskonek micro:bit
+        connectBtn.addEventListener('click', async () => {
+            playClickSound(700);
+
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                bluetoothDevice.gatt.disconnect();
+                return;
+            }
+
+            try {
+                statusText.innerText = "MENCARI...";
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'BBC micro:bit' }],
+                    optionalServices: [UART_SERVICE_UUID]
+                });
+
+                statusText.innerText = "MENGHUBUNGKAN...";
+                const server = await bluetoothDevice.gatt.connect();
+                const service = await server.getPrimaryService(UART_SERVICE_UUID);
+                txCharacteristic = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
+
+                // Update UI kalau sukses nyambung
+                statusDot.style.backgroundColor = 'var(--ios-green)';
+                statusDot.style.boxShadow = '0 0 12px var(--ios-green)';
+                statusText.innerText = "LINK ACTIVE";
+                connectBtn.innerText = "DISCONNECT";
+                connectBtn.style.background = 'linear-gradient(135deg, var(--ios-red), #ff6482)';
+                connectBtn.style.boxShadow = '0 6px 20px rgba(255, 69, 58, 0.4)';
+                playClickSound(1000);
+
+                bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+                // Sistem kirim data "selamanya" tiap 150 milidetik
+                commandLoop = setInterval(() => {
+                    sendBluetoothData(currentCommand);
+                }, 150);
+
+            } catch (error) {
+                console.error("Koneksi gagal:", error);
+                statusText.innerText = "GAGAL KONEK";
+                setTimeout(() => { statusText.innerText = "NO SIGNAL"; }, 2000);
+            }
+        });
+
+        function onDisconnected() {
+            statusDot.style.backgroundColor = 'var(--ios-red)';
+            statusDot.style.boxShadow = '0 0 12px var(--ios-red)';
+            statusText.innerText = "NO SIGNAL";
+            connectBtn.innerText = "INITIALIZE LINK";
+            connectBtn.style.background = '';
+            connectBtn.style.boxShadow = '';
+            clearInterval(commandLoop); // Stop ngirim data kalau putus
+            currentCommand = "stop";
+        }
+
+        async function sendBluetoothData(cmd) {
+            if (!txCharacteristic) return;
+            try {
+                // Micro:bit butuh simbol \n di akhir biar tau datanya udah selesai dikirim
+                let encoder = new TextEncoder();
+                let data = encoder.encode(cmd + "\n");
+                await txCharacteristic.writeValue(data);
+            } catch (error) {
+                console.error("Gagal ngirim perintah:", error);
+            }
+        }
+
+        // --- Logika Deteksi D-Pad ---
+        const btnUp = document.querySelector('.dpad-up');
+        const btnDown = document.querySelector('.dpad-down');
+        const btnLeft = document.querySelector('.dpad-left');
+        const btnRight = document.querySelector('.dpad-right');
+
+        // Deteksi klik mouse & sentuhan layar HP
+        const pressEvents = ['mousedown', 'touchstart'];
+        const releaseEvents = ['mouseup', 'mouseleave', 'touchend'];
+
+        function setCommand(cmd, btn) {
+            currentCommand = cmd;
+            btn.classList.add('is-pressed');
+        }
+        function stopCommand(btn) {
+            currentCommand = "stop"; // Reset ke stop
+            btn.classList.remove('is-pressed');
+        }
+
+        [[btnUp, 'up'], [btnDown, 'down'], [btnLeft, 'left'], [btnRight, 'right']].forEach(([btn, cmd]) => {
+            pressEvents.forEach(evt => btn.addEventListener(evt, (e) => { e.preventDefault(); playClickSound(500); setCommand(cmd, btn); }));
+            releaseEvents.forEach(evt => btn.addEventListener(evt, (e) => { e.preventDefault(); stopCommand(btn); }));
+        });
+    </script>
+    <div id="tmToasts" class="tm-toasts" aria-live="polite"></div>
+
+  <!-- ===== TEACHABLE MACHINE MODEL LOADER (additive, isolated scope) ===== -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ---------- Config ----------
+    const TF_VERSION = '1.3.1';
+    const LIBS = {
+      tfjs:  `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@${TF_VERSION}/dist/tf.min.js`,
+      image: 'https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js',
+      pose:  'https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js',
+      audio: 'https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.4.0/dist/speech-commands.min.js'
+    };
+    const TYPE_NAMES = { image: 'Image Project', pose: 'Pose Project', audio: 'Audio Project' };
+    const METADATA_TIMEOUT = 15000;
+    const MODEL_TIMEOUT = 45000;
+    const PREDICT_INTERVAL = 120;   // ms between predictions (keeps UI smooth)
+    const SMOOTHING = 0.6;          // weight of newest score (1 = no smoothing)
+    const CAM_SIZE = 400;
+
+    // ---------- Elements ----------
+    const $ = (id) => document.getElementById(id);
+    const el = {
+      input: $('tmUrlInput'), loadBtn: $('tmLoadBtn'), error: $('tmError'),
+      loading: $('tmLoading'), loadingText: $('tmLoadingText'), badgeText: $('tmStateText'), badgeDot: $('tmStateDot'),
+      workspace: $('tmWorkspace'), infoType: $('tmInfoType'), infoCount: $('tmInfoCount'),
+      infoClasses: $('tmInfoClasses'), urlToggle: $('tmUrlToggle'),
+      reloadBtn: $('tmReloadBtn'), clearBtn: $('tmClearBtn'),
+      stage: $('tmStage'), stageTitle: $('tmStageTitle'), placeholder: $('tmStagePlaceholder'),
+      mic: $('tmMicIndicator'), startBtn: $('tmStartBtn'), runMsg: $('tmRunMsg'),
+      topLabel: $('tmTopLabel'), topLine: $('tmTopLine'), bars: $('tmBars'), toasts: $('tmToasts')
+    };
+
+    // ---------- State ----------
+    let state = null;      // { type, url, model, recognizer, labels }
+    let loadToken = 0;
+    const run = { active: false, starting: false, webcam: null, poseCanvas: null, raf: 0,
+                  busy: false, last: 0, pose: null, listening: false, smooth: [], pending: null };
+    const libCache = {};
+    let barRefs = [];
+
+    // ---------- Errors ----------
+    class TMError extends Error { constructor(code) { super(code); this.code = code; } }
+
+    const ERRORS = {
+      EMPTY:         { toast: 'Invalid model URL', detail: 'Please paste your Teachable Machine model URL first.' },
+      INVALID:       { toast: 'Invalid model URL', detail: "This doesn't look like a valid model URL. It should start with https:// and look like teachablemachine.withgoogle.com/models/XXXX/" },
+      NOT_FOUND:     { toast: 'Failed to load model', detail: 'Model not found. Check the URL and make sure you uploaded your model and shared it publicly.' },
+      INCOMPATIBLE:  { toast: 'This model type is not supported yet.', detail: 'This model type is not supported yet.' },
+      NETWORK:       { toast: 'Failed to load model', detail: "You seem to be offline. Check your internet connection and try again." },
+      BLOCKED:       { toast: 'Failed to load model', detail: "We couldn't reach this model. It may be private, blocked by CORS, or your connection dropped. Use the shared link from Teachable Machine (Export Model > Upload my model)." },
+      TIMEOUT:       { toast: 'Failed to load model', detail: 'Loading took too long. Check your connection and try again.' },
+      LIB:           { toast: 'Failed to load model', detail: "We couldn't load the AI libraries. Check your connection and try again." },
+      GENERIC:       { toast: 'Failed to load model', detail: "We couldn't load this model. Please check your Teachable Machine URL and try again." },
+      CAMERA_DENIED: { toast: 'Camera permission required', detail: 'Camera access was denied. Allow camera permission in your browser and try again.' },
+      MIC_DENIED:    { toast: 'Microphone permission required', detail: 'Microphone access was denied. Allow microphone permission in your browser and try again.' },
+      NO_CAMERA:     { toast: 'Camera not available', detail: 'No camera was found on this device, or it is being used by another app.' },
+      NO_MIC:        { toast: 'Microphone not available', detail: 'No microphone was found on this device, or it is being used by another app.' },
+      INSECURE:      { toast: 'Camera permission required', detail: 'Camera and microphone need a secure page (HTTPS or localhost).' }
+    };
+
+    function describeError(e) {
+      if (e instanceof TMError && ERRORS[e.code]) return ERRORS[e.code];
+      const msg = String((e && e.message) || e || '');
+      if (/404|not found/i.test(msg)) return ERRORS.NOT_FOUND;
+      if (/failed to fetch|networkerror|load failed|network request failed/i.test(msg))
+        return navigator.onLine === false ? ERRORS.NETWORK : ERRORS.BLOCKED;
+      return ERRORS.GENERIC;
+    }
+
+    function mediaErrorCode(e, kind) {
+      const name = e && e.name;
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError')
+        return kind === 'mic' ? 'MIC_DENIED' : 'CAMERA_DENIED';
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError' || name === 'NotReadableError')
+        return kind === 'mic' ? 'NO_MIC' : 'NO_CAMERA';
+      return 'GENERIC';
+    }
+
+    // ---------- UI helpers ----------
+    function log(msg) { if (window.console && console.debug) console.debug('TM:', msg); }
+    function snd(f) { if (typeof playClickSound === 'function') { try { playClickSound(f); } catch (_) {} } }
+
+    function toast(message, type) {
+      const colors = { success: 'var(--ios-green)', error: 'var(--ios-red)', warn: '#ff9f0a' };
+      const c = colors[type] || colors.warn;
+      const t = document.createElement('div');
+      t.className = 'tm-toast';
+      t.setAttribute('role', 'status');
+      const dot = document.createElement('span');
+      dot.className = 'tm-toast-dot'; dot.style.background = c; dot.style.boxShadow = `0 0 10px ${c}`;
+      const txt = document.createElement('span');
+      txt.textContent = message;
+      t.append(dot, txt);
+      el.toasts.appendChild(t);
+      while (el.toasts.children.length > 4) el.toasts.firstChild.remove();
+      setTimeout(() => t.remove(), 3800);
+    }
+
+    const BADGE = { idle: '#94a3b8', busy: '#ff9f0a', ok: 'var(--ios-green)', live: 'var(--ios-blue)', err: 'var(--ios-red)' };
+    function setBadge(text, kind) {
+      const c = BADGE[kind] || BADGE.idle;
+      el.badgeText.textContent = text;
+      el.badgeDot.style.backgroundColor = c;
+      el.badgeDot.style.boxShadow = `0 0 12px ${c}`;
+    }
+    const setError = (msg) => { el.error.textContent = msg; el.error.classList.remove('tm-hidden'); };
+    const clearError = () => { el.error.textContent = ''; el.error.classList.add('tm-hidden'); };
+    const setRunMsg = (msg) => { el.runMsg.textContent = msg; el.runMsg.classList.toggle('tm-hidden', !msg); };
+
+    function setLoading(on, text) {
+      el.loading.classList.toggle('tm-hidden', !on);
+      el.loadBtn.disabled = on;
+      el.reloadBtn.disabled = on;
+      if (text) el.loadingText.textContent = text;
+      if (on) setBadge('LOADING', 'busy');
+    }
+
+    // ---------- Validation ----------
+    function normalizeUrl(raw) {
+      const s = (raw || '').trim();
+      if (!s) throw new TMError('EMPTY');
+      let u;
+      try { u = new URL(s); } catch (_) { throw new TMError('INVALID'); }
+      if (u.protocol !== 'https:' || u.username || u.password) throw new TMError('INVALID');
+      let path = u.pathname.replace(/(model\.json|metadata\.json|weights\.bin)$/i, '');
+      if (!path.endsWith('/')) path += '/';
+      if (path === '/') throw new TMError('INVALID');
+      if (u.hostname === 'teachablemachine.withgoogle.com' && !/^\/models\/[^/]+\/$/.test(path)) throw new TMError('INVALID');
+      return u.origin + path;   // query/hash dropped on purpose
+    }
+
+    function withTimeout(promise, ms) {
+      let t;
+      const timeout = new Promise((_, rej) => { t = setTimeout(() => rej(new TMError('TIMEOUT')), ms); });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+    }
+
+    async function fetchJson(url, ms) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal, cache: 'no-cache', credentials: 'omit' });
+        if (res.status === 404 || res.status === 403 || res.status === 410) throw new TMError('NOT_FOUND');
+        if (!res.ok) throw new TMError('GENERIC');
+        try { return await res.json(); } catch (_) { throw new TMError('INCOMPATIBLE'); }
+      } catch (e) {
+        if (e instanceof TMError) throw e;
+        if (e && e.name === 'AbortError') throw new TMError('TIMEOUT');
+        throw new TMError(navigator.onLine === false ? 'NETWORK' : 'BLOCKED');
+      } finally { clearTimeout(timer); }
+    }
+
+    // ---------- Smart model detection ----------
+    function detectType(meta) {
+      if (!meta || typeof meta !== 'object') return null;
+      const pkg = String(meta.packageName || '').toLowerCase();
+      if (pkg.includes('pose')) return 'pose';
+      if (pkg.includes('image')) return 'image';
+      if (pkg.includes('audio') || pkg.includes('speech')) return 'audio';
+      if (Array.isArray(meta.wordLabels) || meta.tfjsSpeechCommandsVersion) return 'audio';
+      if (Array.isArray(meta.labels)) return meta.modelSettings ? 'pose' : 'image';
+      return null;
+    }
+
+    // ---------- Library loading (fixed CDN list only) ----------
+    function loadScript(src) {
+      if (libCache[src]) return libCache[src];
+      libCache[src] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src; s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => { delete libCache[src]; s.remove(); reject(new TMError('LIB')); };
+        document.head.appendChild(s);
+      });
+      return libCache[src];
+    }
+
+    async function ensureLibs(type) {
+      await loadScript(LIBS.tfjs);
+      await loadScript(LIBS[type]);
+      const ok = (type === 'image' && window.tmImage) || (type === 'pose' && window.tmPose) || (type === 'audio' && window.speechCommands);
+      if (!ok) throw new TMError('LIB');
+    }
+
+    async function createModel(type, base) {
+      const modelUrl = base + 'model.json', metaUrl = base + 'metadata.json';
+      if (type === 'image') {
+        const model = await window.tmImage.load(modelUrl, metaUrl);
+        return { model, recognizer: null, labels: model.getClassLabels() };
+      }
+      if (type === 'pose') {
+        const model = await window.tmPose.load(modelUrl, metaUrl);
+        return { model, recognizer: null, labels: model.getClassLabels() };
+      }
+      const recognizer = window.speechCommands.create('BROWSER_FFT', undefined, modelUrl, metaUrl);
+      await recognizer.ensureModelLoaded();
+      return { model: null, recognizer, labels: Array.from(recognizer.wordLabels()) };
+    }
+
+    // ---------- Load / reload / clear ----------
+    async function loadModel(rawUrl) {
+      const token = ++loadToken;
+      await resetModelState();
+      clearError();
+      setLoading(true, 'Loading model...');
+      try {
+        const base = normalizeUrl(rawUrl);
+        const meta = await fetchJson(base + 'metadata.json', METADATA_TIMEOUT);
+        const type = detectType(meta);
+        if (!type) throw new TMError('INCOMPATIBLE');
+        if (token !== loadToken) return;
+
+        el.loadingText.textContent = 'Initializing AI...';
+        const built = await withTimeout((async () => { await ensureLibs(type); return createModel(type, base); })(), MODEL_TIMEOUT);
+        if (token !== loadToken) return;
+        if (!built.labels || !built.labels.length) throw new TMError('INCOMPATIBLE');
+
+        el.loadingText.textContent = 'Model ready';
+        await new Promise((r) => setTimeout(r, 350));
+        if (token !== loadToken) return;
+
+        state = { type, url: base, model: built.model, recognizer: built.recognizer, labels: built.labels };
+        showWorkspace();
+        toast('Model loaded successfully', 'success');
+        log(`MODEL LOADED (${TYPE_NAMES[type]}, ${built.labels.length} classes)`);
+      } catch (e) {
+        if (token !== loadToken) return;
+        const info = describeError(e);
+        setError(info.detail);
+        toast(info.toast, 'error');
+        setBadge('ERROR', 'err');
+        log('LOAD FAILED - ' + info.detail);
+      } finally {
+        if (token === loadToken) setLoading(false);
+      }
+    }
+
+    async function resetModelState() {
+      await stopRun();
+      if (state && state.model && typeof state.model.dispose === 'function') { try { state.model.dispose(); } catch (_) {} }
+      state = null;
+      barRefs = [];
+      el.workspace.classList.add('tm-hidden');
+      setBadge('NO MODEL', 'idle');
+    }
+
+    async function clearModel() {
+      loadToken++;                       // cancel any in-flight load
+      await resetModelState();
+      clearError();
+      setLoading(false);
+      el.input.value = '';
+      toast('Model cleared', 'warn');
+      log('MODEL CLEARED');
+    }
+
+    // ---------- Workspace rendering ----------
+    function showWorkspace() {
+      const isAudio = state.type === 'audio';
+      el.infoType.textContent = TYPE_NAMES[state.type];
+      el.infoCount.textContent = String(state.labels.length);
+
+      el.infoClasses.textContent = '';
+      state.labels.forEach((name) => {
+        const chip = document.createElement('span');
+        chip.className = 'tm-chip';
+        chip.textContent = name;
+        el.infoClasses.appendChild(chip);
+      });
+
+      el.urlToggle.textContent = state.url;
+      el.urlToggle.classList.add('tm-truncate');
+      el.urlToggle.setAttribute('aria-expanded', 'false');
+
+      el.stageTitle.textContent = isAudio ? 'Microphone' : 'Camera';
+      el.placeholder.textContent = isAudio ? 'Microphone is off' : 'Camera is off';
+      el.placeholder.classList.remove('tm-hidden');
+      el.mic.classList.add('tm-hidden');
+      updateStartBtn();
+      setRunMsg('');
+      buildBars();
+      el.workspace.classList.remove('tm-hidden');
+      setBadge('MODEL READY', 'ok');
+    }
+
+    function buildBars() {
+      el.bars.textContent = '';
+      barRefs = state.labels.map((name) => {
+        const row = document.createElement('div');
+        const head = document.createElement('div');
+        head.className = 'tm-bar-head';
+        const n = document.createElement('span');
+        n.className = 'tm-bar-name'; n.textContent = name;
+        const p = document.createElement('span');
+        p.className = 'tm-bar-pct'; p.textContent = '0.0%';
+        head.append(n, p);
+        const track = document.createElement('div');
+        track.className = 'tm-bar-track';
+        track.setAttribute('role', 'progressbar');
+        track.setAttribute('aria-label', name);
+        track.setAttribute('aria-valuemin', '0'); track.setAttribute('aria-valuemax', '100'); track.setAttribute('aria-valuenow', '0');
+        const fill = document.createElement('div');
+        fill.className = 'tm-bar-fill'; fill.style.width = '0%';
+        track.appendChild(fill);
+        row.append(head, track);
+        el.bars.appendChild(row);
+        return { n, p, fill, track };
+      });
+      el.topLabel.textContent = '-';
+      el.topLine.textContent = 'Waiting for input...';
+    }
+
+    const pct = (v) => Math.max(0, Math.min(1, v || 0));
+    function renderScores(scores) {
+      let top = 0;
+      for (let i = 1; i < scores.length; i++) if (scores[i] > scores[top]) top = i;
+      barRefs.forEach((b, i) => {
+        const v = pct(scores[i]) * 100;
+        b.fill.style.width = v.toFixed(1) + '%';
+        b.fill.classList.toggle('is-top', i === top);
+        b.p.textContent = v.toFixed(1) + '%';
+        b.p.className = 'tm-bar-pct' + (i === top ? ' is-top' : '');
+        b.track.setAttribute('aria-valuenow', v.toFixed(0));
+      });
+      el.topLabel.textContent = state.labels[top];
+      el.topLine.textContent = `${state.labels[top]} — ${(pct(scores[top]) * 100).toFixed(1)}%`;
+    }
+
+    function smoothScores(raw) {
+      if (run.smooth.length !== raw.length) run.smooth = Array.from(raw, (v) => v);
+      else for (let i = 0; i < raw.length; i++) run.smooth[i] = run.smooth[i] * (1 - SMOOTHING) + raw[i] * SMOOTHING;
+      return run.smooth;
+    }
+
+    function updateStartBtn() {
+      if (!state) return;
+      const isAudio = state.type === 'audio';
+      el.startBtn.disabled = run.starting;
+      el.startBtn.textContent = run.starting ? 'Starting...'
+        : run.active ? (isAudio ? 'Stop Microphone' : 'Stop Camera')
+        : (isAudio ? 'Enable Microphone' : 'Start Camera');
+    }
+
+    // ---------- Real-time prediction ----------
+    async function startRun() {
+      if (!state || run.active || run.starting) return;
+      const s = state;
+      run.starting = true; updateStartBtn(); setRunMsg('');
+      try {
+        if (s.type === 'audio') await startAudio(s); else await startCamera(s);
+        if (state !== s) { await stopRun(); return; }
+        run.active = true;
+        setBadge('LIVE', 'live');
+        log('PREDICTION STARTED');
+      } catch (e) {
+        await stopRun();
+        const info = e instanceof TMError ? ERRORS[e.code] : ERRORS[mediaErrorCode(e, s.type === 'audio' ? 'mic' : 'cam')];
+        setRunMsg(info.detail);
+        toast(info.toast, 'error');
+        log('START FAILED - ' + (e && e.name ? e.name : 'ERROR'));
+      } finally {
+        run.starting = false; updateStartBtn();
+      }
+    }
+
+    async function startCamera(s) {
+      if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new TMError('INSECURE');
+      const lib = s.type === 'pose' ? window.tmPose : window.tmImage;
+      const webcam = new lib.Webcam(CAM_SIZE, CAM_SIZE, true);   // mirrored
+      await webcam.setup();                                       // asks for permission
+      await webcam.play();
+      if (state !== s) { try { webcam.stop(); } catch (_) {} return; }
+      run.webcam = webcam;
+
+      let shown = webcam.canvas;
+      if (s.type === 'pose') {
+        shown = document.createElement('canvas');
+        shown.width = CAM_SIZE; shown.height = CAM_SIZE;
+        run.poseCanvas = shown;
+      }
+      shown.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
+      el.stage.insertBefore(shown, el.stage.firstChild);
+      el.placeholder.classList.add('tm-hidden');
+
+      run.active = true; run.busy = false; run.last = 0; run.pose = null; run.smooth = [];
+      const loop = (ts) => {
+        if (!run.active) return;
+        run.raf = requestAnimationFrame(loop);
+        run.webcam.update();
+        if (s.type === 'pose') drawPose(s);
+        if (!run.busy && ts - run.last >= PREDICT_INTERVAL) {
+          run.busy = true; run.last = ts;
+          predictFrame(s).catch(onPredictError).finally(() => { run.busy = false; });
+        }
+      };
+      run.raf = requestAnimationFrame(loop);
+    }
+
+    function drawPose(s) {
+      const ctx = run.poseCanvas.getContext('2d');
+      ctx.drawImage(run.webcam.canvas, 0, 0);
+      if (run.pose && run.pose.keypoints) {
+        window.tmPose.drawKeypoints(run.pose.keypoints, 0.5, ctx);
+        window.tmPose.drawSkeleton(run.pose.keypoints, 0.5, ctx);
+      }
+    }
+
+    async function predictFrame(s) {
+      let preds;
+      if (s.type === 'pose') {
+        const { pose, posenetOutput } = await s.model.estimatePose(run.webcam.canvas);
+        run.pose = pose;
+        preds = await s.model.predict(posenetOutput);
+      } else {
+        preds = await s.model.predict(run.webcam.canvas);
+      }
+      if (!run.active || state !== s) return;
+      renderScores(smoothScores(preds.map((p) => p.probability)));
+    }
+
+    async function onPredictError(e) {
+      if (!run.active) return;
+      await stopRun();
+      setRunMsg(ERRORS.GENERIC.detail);
+      toast('Failed to load model', 'error');
+      log('PREDICTION ERROR - ' + (e && e.message ? e.message : e));
+    }
+
+    async function startAudio(s) {
+      if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new TMError('INSECURE');
+      run.smooth = []; run.pending = null;
+      await s.recognizer.listen((result) => {
+        if (!run.active && !run.listening) return;
+        run.pending = result.scores;
+        if (!run.raf) {
+          run.raf = requestAnimationFrame(() => {
+            run.raf = 0;
+            if (run.pending && state === s) renderScores(smoothScores(run.pending));
+          });
+        }
+      }, { includeSpectrogram: false, probabilityThreshold: 0, invokeCallbackOnNoiseAndUnknown: true, overlapFactor: 0.5 });
+      run.listening = true;
+      run.active = true;
+      el.placeholder.classList.add('tm-hidden');
+      el.mic.classList.remove('tm-hidden');
+    }
+
+    async function stopRun() {
+      const wasLive = run.active;
+      run.active = false;
+      cancelAnimationFrame(run.raf); run.raf = 0;
+      if (run.webcam) {
+        try { run.webcam.stop(); } catch (_) {}
+        if (run.webcam.canvas && run.webcam.canvas.parentNode) run.webcam.canvas.remove();
+        run.webcam = null;
+      }
+      if (run.poseCanvas) { run.poseCanvas.remove(); run.poseCanvas = null; }
+      if (run.listening && state && state.recognizer) {
+        run.listening = false;
+        try { await state.recognizer.stopListening(); } catch (_) {}
+      }
+      run.listening = false; run.pose = null; run.busy = false; run.pending = null; run.smooth = [];
+      el.mic.classList.add('tm-hidden');
+      el.placeholder.classList.remove('tm-hidden');
+      if (state) {
+        if (barRefs.length) buildBars();
+        if (wasLive) setBadge('MODEL READY', 'ok');
+      }
+      updateStartBtn();
+    }
+
+    // ---------- Events ----------
+    el.loadBtn.addEventListener('click', () => { snd(700); loadModel(el.input.value); });
+    el.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!el.loadBtn.disabled) loadModel(el.input.value); } });
+    el.reloadBtn.addEventListener('click', () => { snd(700); if (state) loadModel(state.url); else loadModel(el.input.value); });
+    el.clearBtn.addEventListener('click', () => { snd(400); clearModel(); });
+    el.startBtn.addEventListener('click', () => { snd(900); if (run.active) { stopRun(); log('PREDICTION STOPPED'); } else startRun(); });
+    el.urlToggle.addEventListener('click', () => {
+      const expanded = el.urlToggle.getAttribute('aria-expanded') === 'true';
+      el.urlToggle.classList.toggle('tm-truncate', expanded);
+      el.urlToggle.classList.toggle('tm-wrap', !expanded);
+      el.urlToggle.setAttribute('aria-expanded', String(!expanded));
+      el.urlToggle.title = expanded ? 'Click to expand' : 'Click to collapse';
+    });
+    document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', () => {
+      setTimeout(() => { if (!$('view-ai').classList.contains('active') && (run.active || run.starting)) stopRun(); }, 0);
+    }));
+    window.addEventListener('pagehide', () => { if (run.webcam) { try { run.webcam.stop(); } catch (_) {} } });
+  })();
+  </script>
+</body>
+</html>
